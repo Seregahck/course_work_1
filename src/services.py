@@ -21,12 +21,12 @@ def investment_bank(month: str, transactions: List[Dict[str, Any]], limit: int) 
         float: Сумма, которую удалось бы отложить
     """
     try:
-        target_date = datetime.strptime(month, '%Y-%m')
+        target_date = datetime.strptime(month, '%m-%Y')
         total_investment = 0.0
 
         for transaction in transactions:
             # Проверяем, относится ли транзакция к нужному месяцу
-            trans_date = datetime.strptime(transaction['Дата операции'], '%Y-%m-%d')
+            trans_date = datetime.strptime(transaction['Дата операции'], '%d-%-%Y')
             if trans_date.year == target_date.year and trans_date.month == target_date.month:
                 amount = transaction['Сумма операции']
 

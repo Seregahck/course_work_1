@@ -2,7 +2,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List
 
 import pandas as pd
 
@@ -17,63 +17,109 @@ from src.utils import (
 logger = logging.getLogger(__name__)
 
 
-def load_user_settings() -> Dict:
+def load_user_settings() -> Dict[str, Any]:
     """Загружает настройки пользователя из JSON-файла."""
     try:
         with open('user_settings.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
+            settings: Dict[str, Any] = json.load(f)
+            return settings
     except FileNotFoundError:
         logger.warning("Файл user_settings.json не найден. Используются настройки по умолчанию.")
         return {
             "user_currencies": ["USD", "EUR"],
             "user_stocks": ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
         }
+    except json.JSONDecodeError:
+        logger.error("Ошибка декодирования JSON в файле user_settings.json")
+        return {
+            "user_currencies": ["USD", "EUR"],
+            "user_stocks": ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
+        }
 
 
-def get_cards_info(df: pd.DataFrame) -> List[Dict]:
+def get_cards_info(df: pd.DataFrame) -> List[Dict[str, Any]]:
     """
     Получает информацию по картам: последние цифры, расходы, кешбэк.
     """
     if 'Номер карты' not in df.columns or 'Сумма операции' not in df.columns:
+        logger.warning("Колонки 'Номер карты' или 'Сумма операции' не найдены")
+        # Проверим, какие колонки есть в DataFrame
+        logger.info(f"Доступные колонки: {list(df.columns)}")
         return []
 
-    cards = []
+    # Проверим, есть ли вообще данные по картам
+    if df['Номер карты'].isna().all():
+        logger.warning("Нет данных по номерам карт")
+        return []
+
+    cards: List[Dict[str, Any]] = []
     for card in df['Номер карты'].dropna().unique():
         card_transactions = df[df['Номер карты'] == card]
-        total_spent = abs(card_transactions[card_transactions['Сумма операции'] < 0]['Сумма операции'].sum())
+        # Берем только расходы (отрицательные суммы)
+        expenses = card_transactions[card_transactions['Сумма операции'] < 0]
+        total_spent = abs(expenses['Сумма операции'].sum()) if not expenses.empty else 0
         cashback = round(total_spent / 100, 2)  # 1 рубль на каждые 100 рублей
 
+        # Преобразуем номер карты в строку и берем последние 4 цифры
+        card_str = str(int(card)) if pd.notna(card) else ""
+        last_digits = card_str[-4:] if len(card_str) >= 4 else card_str
+
         cards.append({
-            "last_digits": str(int(card))[-4:],
+            "last_digits": last_digits,
             "total_spent": round(total_spent, 2),
             "cashback": cashback
         })
+        logger.info(f"Карта {last_digits}: расходы {total_spent}, кешбэк {cashback}")
 
     return cards
 
 
-def get_top_transactions(df: pd.DataFrame, n: int = 5) -> List[Dict]:
+def get_top_transactions(df: pd.DataFrame, n: int = 5) -> List[Dict[str, Any]]:
     """
     Получает топ-N транзакций по сумме платежа.
     """
     if 'Сумма платежа' not in df.columns:
+        logger.warning("Колонка 'Сумма платежа' не найдена")
+        logger.info(f"Доступные колонки: {list(df.columns)}")
         return []
 
-    top_transactions = df.nlargest(n, 'Сумма платежа')[
-        ['Дата операции', 'Сумма платежа', 'Категория', 'Описание']
-    ]
+    # Проверим, есть ли данные
+    if df.empty:
+        logger.warning("DataFrame пуст")
+        return []
 
-    result = []
+    # Проверим, есть ли положительные суммы (расходы обычно отрицательные)
+    expenses_df = df[df['Сумма платежа'] > 0].copy()
+    if expenses_df.empty:
+        logger.warning("Нет транзакций с положительной суммой платежа")
+        # Попробуем использовать абсолютные значения
+        df_copy = df.copy()
+        df_copy['Сумма платежа'] = abs(df_copy['Сумма платежа'])
+        top_transactions = df_copy.nlargest(n, 'Сумма платежа')
+    else:
+        top_transactions = expenses_df.nlargest(n, 'Сумма платежа')
+
+    result: List[Dict[str, Any]] = []
     for _, row in top_transactions.iterrows():
+        # Преобразуем дату
+        date_str = row['Дата операции']
+        if pd.notna(date_str):
+            try:
+                date_formatted = pd.to_datetime(date_str).strftime('%d.%m.%Y')
+            except:
+                date_formatted = str(date_str)
+        else:
+            date_formatted = ""
+
         result.append({
-            "date": pd.to_datetime(row['Дата операции']).strftime('%d.%m.%Y'),
-            "amount": round(row['Сумма платежа'], 2),
-            "category": row['Категория'] if pd.notna(row['Категория']) else "",
-            "description": row['Описание'] if pd.notna(row['Описание']) else ""
+            "date": date_formatted,
+            "amount": round(abs(row['Сумма платежа']), 2),
+            "category": str(row['Категория']) if pd.notna(row['Категория']) else "",
+            "description": str(row['Описание']) if pd.notna(row['Описание']) else ""
         })
 
+    logger.info(f"Найдено {len(result)} топ-транзакций")
     return result
-
 
 def main_page(date_str: str) -> str:
     """
@@ -95,7 +141,7 @@ def main_page(date_str: str) -> str:
     df_filtered = filter_transactions_by_date(df, date, 'M')
 
     # Формируем ответ
-    response = {
+    response: Dict[str, Any] = {
         "greeting": get_greeting(),
         "cards": get_cards_info(df_filtered),
         "top_transactions": get_top_transactions(df_filtered, 5),
