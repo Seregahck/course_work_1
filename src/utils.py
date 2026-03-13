@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -10,20 +11,53 @@ import requests
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Создание директории для логов
-log_dir = Path(__file__).parent / 'logs'
-log_dir.mkdir(exist_ok=True)
+# Определение кодировки для Windows
+ENCODING = 'cp1251' if sys.platform == 'win32' else 'utf-8'
+
+# Создание директорий
+BASE_DIR = Path(__file__).parent.parent.absolute()  # Корень проекта
+LOG_DIR = BASE_DIR / 'logs'
+REPORTS_DIR = BASE_DIR / 'reports'
+DATA_DIR = BASE_DIR / 'data'
+
+# Создаем все необходимые директории
+for directory in [LOG_DIR, REPORTS_DIR, DATA_DIR]:
+    directory.mkdir(exist_ok=True)
+    print(f"Создана директория: {directory}")
+
+# Настройка логирования с правильной кодировкой для Windows
+log_file = LOG_DIR / 'app.log'
+
+# Удаляем старый файл лога если он в неправильной кодировке
+if log_file.exists():
+    try:
+        # Пробуем прочитать файл в UTF-8
+        with open(log_file, 'r', encoding='utf-8') as f:
+            f.read()
+    except UnicodeDecodeError:
+        # Если не получается, пересоздаем файл
+        log_file.unlink()
+        print(f"Пересоздан файл лога: {log_file}")
 
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filename=str(log_dir / 'app.log'),
-    encoding='utf-8'
+    filename=str(log_file),
+    encoding=ENCODING,  # Используем правильную кодировку
+    filemode='w'  # Перезаписываем файл при каждом запуске
 )
+
+# Добавляем обработчик для вывода в консоль
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
 logger = logging.getLogger(__name__)
+logger.addHandler(console_handler)
 
 load_dotenv()
+
 
 
 def load_transactions(file_path: str = "data/operations.xlsx") -> pd.DataFrame:
