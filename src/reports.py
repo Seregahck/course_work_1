@@ -189,25 +189,3 @@ def spending_by_weekday(
 
     logger.info("Отчет по дням недели сформирован")
     return sorted_result
-
-
-# Дополнительная функция для тестирования отчета по категории с явной типизацией
-def test_spending_by_category(
-    transactions: pd.DataFrame,
-    category: str,
-    date: Optional[str] = None
-) -> pd.DataFrame:
-    """
-    Тестовая функция для отчета по категории с явной типизацией.
-
-    Args:
-        transactions: DataFrame с транзакциями
-        category: Название категории
-        date: Опциональная дата (формат 'YYYY-MM-DD')
-
-    Returns:
-        DataFrame с отфильтрованными транзакциями
-    """
-    result = spending_by_category(transactions, category, date)
-    # Явное приведение типа для безопасности
-    return cast(pd.DataFrame, result)
