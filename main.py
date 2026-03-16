@@ -2,6 +2,7 @@
 import json
 import logging
 from datetime import datetime
+from typing import NoReturn
 
 import pandas as pd
 
@@ -15,23 +16,25 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main() -> None:
     """Демонстрация всех реализованных функциональностей."""
     print("=" * 60)
     print("КУРСОВАЯ РАБОТА: АНАЛИЗ ТРАНЗАКЦИЙ")
     print("=" * 60)
+
+    # Загружаем транзакции
+    df = load_transactions()
+
 
     # 1. Веб-страница "Главная"
     print("\n1. ВЕБ-СТРАНИЦА 'ГЛАВНАЯ'")
     print("-" * 40)
     current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     result = main_page(current_date)
-    print("JSON-ответ для главной страницы:")
+    print("JSON-ответ для главной страницы (первые 500 символов):")
     print(result[:500] + "..." if len(result) > 500 else result)
 
-    # Загружаем транзакции
-    df = load_transactions()
-    transactions = df.to_dict('records') if not df.empty else []
+    transactions: list = df.to_dict('records') if not df.empty else []
 
     # 2. Сервис "Инвесткопилка"
     print("\n2. СЕРВИС 'ИНВЕСТКОПИЛКА'")
@@ -46,7 +49,8 @@ def main():
     print("-" * 40)
     if transactions:
         search_result = simple_search("перевод", transactions)
-        print(f"Поиск 'перевод': найдено {len(json.loads(search_result))} транзакций")
+        search_data = json.loads(search_result)
+        print(f"Поиск 'перевод': найдено {len(search_data)} транзакций")
 
     # 4. Отчет "Траты по категории"
     print("\n4. ОТЧЕТ 'ТРАТЫ ПО КАТЕГОРИИ'")
