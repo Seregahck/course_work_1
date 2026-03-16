@@ -1,11 +1,12 @@
 """Вспомогательные функции для проекта."""
+
 import json
 import logging
 import os
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Dict, List, Union, cast
 
 import pandas as pd
 import requests
@@ -13,13 +14,13 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 # Определение кодировки для Windows
-ENCODING = 'cp1251' if sys.platform == 'win32' else 'utf-8'
+ENCODING = "cp1251" if sys.platform == "win32" else "utf-8"
 
 # Создание директорий
 BASE_DIR = Path(__file__).parent.parent.absolute()  # Корень проекта
-LOG_DIR = BASE_DIR / 'logs'
-REPORTS_DIR = BASE_DIR / 'reports'
-DATA_DIR = BASE_DIR / 'data'
+LOG_DIR = BASE_DIR / "logs"
+REPORTS_DIR = BASE_DIR / "reports"
+DATA_DIR = BASE_DIR / "data"
 
 # Создаем все необходимые директории
 for directory in [LOG_DIR, REPORTS_DIR, DATA_DIR]:
@@ -27,13 +28,13 @@ for directory in [LOG_DIR, REPORTS_DIR, DATA_DIR]:
     print(f"Создана директория: {directory}")
 
 # Настройка логирования с правильной кодировкой для Windows
-log_file = LOG_DIR / 'app.log'
+log_file = LOG_DIR / "app.log"
 
 # Удаляем старый файл лога если он в неправильной кодировке
 if log_file.exists():
     try:
         # Пробуем прочитать файл в UTF-8
-        with open(log_file, 'r', encoding='utf-8') as f:
+        with open(log_file, "r", encoding="utf-8") as f:
             f.read()
     except UnicodeDecodeError:
         # Если не получается, пересоздаем файл
@@ -43,16 +44,16 @@ if log_file.exists():
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     filename=str(log_file),
     encoding=ENCODING,  # Используем правильную кодировку
-    filemode='w'  # Перезаписываем файл при каждом запуске
+    filemode="w",  # Перезаписываем файл при каждом запуске
 )
 
 # Добавляем обработчик для вывода в консоль
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.INFO)
-console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+console_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
 
 logger = logging.getLogger(__name__)
 logger.addHandler(console_handler)
@@ -74,7 +75,7 @@ def load_transactions(file_path: str = "data/operations.xlsx") -> pd.DataFrame:
         if not os.path.exists(file_path):
             logger.error(f"Файл не найден: {file_path}")
             # Пробуем найти файл в корне data
-            alternative_path = DATA_DIR / 'operations.xlsx'
+            alternative_path = DATA_DIR / "operations.xlsx"
             if alternative_path.exists():
                 file_path = str(alternative_path)
                 logger.info(f"Найден альтернативный путь: {file_path}")
@@ -134,18 +135,15 @@ def get_currency_rates(currencies: List[str]) -> List[Dict[str, Union[str, float
             # Используем правильные параметры для API
             url = f"https://api.apilayer.com/exchangerates_data/latest"
             headers = {"apikey": api_key}
-            params = {
-                "symbols": currency,
-                "base": base_currency
-            }
+            params = {"symbols": currency, "base": base_currency}
 
             logger.info(f"Запрос курса для {currency}")
             response = requests.get(url, headers=headers, params=params, timeout=30)
 
             if response.status_code == 200:
                 data = response.json()
-                if 'rates' in data and currency in data['rates']:
-                    rate = float(data['rates'][currency])  # Курс RUB к целевой валюте
+                if "rates" in data and currency in data["rates"]:
+                    rate = float(data["rates"][currency])  # Курс RUB к целевой валюте
                     rates.append({"currency": currency, "rate": round(rate, 4)})
                     logger.info(f"Курс {currency}: {rate}")
                 else:
@@ -201,12 +199,7 @@ def get_stock_prices(stocks: List[str]) -> List[Dict[str, Union[str, float]]]:
         try:
             # Добавляем параметры запроса: тикер и API ключ
             response = requests.get(
-                f"https://finnhub.io/api/v1/quote",
-                params={
-                    "symbol": stock,
-                    "token": api_key
-                },
-                timeout=30
+                f"https://finnhub.io/api/v1/quote", params={"symbol": stock, "token": api_key}, timeout=30
             )
 
             if response.status_code == 200:
@@ -214,8 +207,8 @@ def get_stock_prices(stocks: List[str]) -> List[Dict[str, Union[str, float]]]:
 
                 # Finnhub возвращает объект с полями c, h, l, o, pc
                 # c - текущая цена, pc - цена закрытия предыдущего дня
-                if data and 'c' in data and data['c'] is not None:
-                    price = float(data['c'])  # Текущая цена
+                if data and "c" in data and data["c"] is not None:
+                    price = float(data["c"])  # Текущая цена
                     prices.append({"stock": stock, "price": round(price, 2)})
                     logger.info(f"Цена {stock}: {price}")
                 else:
@@ -245,11 +238,7 @@ def get_stock_prices(stocks: List[str]) -> List[Dict[str, Union[str, float]]]:
     return prices
 
 
-def filter_transactions_by_date(
-    df: pd.DataFrame,
-    end_date: datetime,
-    period: str = 'M'
-) -> pd.DataFrame:
+def filter_transactions_by_date(df: pd.DataFrame, end_date: datetime, period: str = "M") -> pd.DataFrame:
     """
     Фильтрует транзакции по дате.
 
@@ -264,7 +253,7 @@ def filter_transactions_by_date(
     if df.empty:
         return pd.DataFrame()
 
-    if 'Дата операции' not in df.columns:
+    if "Дата операции" not in df.columns:
         logger.warning("Колонка 'Дата операции' не найдена")
         return pd.DataFrame()
 
@@ -272,32 +261,28 @@ def filter_transactions_by_date(
     df_copy = df.copy()
 
     # Преобразуем даты
-    df_copy['Дата_операции_dt'] = pd.to_datetime(
-        df_copy['Дата операции'],
-        format='%d.%m.%Y',
-        errors='coerce'
-    )
+    df_copy["Дата_операции_dt"] = pd.to_datetime(df_copy["Дата операции"], format="%d.%m.%Y", errors="coerce")
 
     # Удаляем строки с некорректными датами
-    df_clean = df_copy.dropna(subset=['Дата_операции_dt']).copy()
+    df_clean = df_copy.dropna(subset=["Дата_операции_dt"]).copy()
 
     if df_clean.empty:
         return pd.DataFrame()
 
-    if period == 'ALL':
+    if period == "ALL":
         # Используем .loc для явной индексации
-        mask = df_clean['Дата_операции_dt'] <= end_date
+        mask = df_clean["Дата_операции_dt"] <= end_date
         result_df = df_clean.loc[mask].copy()
         # Явное приведение типа для mypy
         return cast(pd.DataFrame, result_df)
 
     # Определяем начальную дату периода
-    if period == 'M':
+    if period == "M":
         start_date = end_date.replace(day=1)
-    elif period == 'W':
+    elif period == "W":
         # Начало недели (понедельник)
         start_date = end_date - pd.Timedelta(days=end_date.weekday())
-    elif period == 'Y':
+    elif period == "Y":
         start_date = end_date.replace(month=1, day=1)
     else:
         logger.warning(f"Неизвестный период '{period}', используем месяц")
@@ -306,7 +291,7 @@ def filter_transactions_by_date(
     logger.info(f"Фильтрация транзакций с {start_date.date()} по {end_date.date()}")
 
     # Фильтруем и возвращаем результат используя .loc
-    date_mask = (df_clean['Дата_операции_dt'] >= start_date) & (df_clean['Дата_операции_dt'] <= end_date)
+    date_mask = (df_clean["Дата_операции_dt"] >= start_date) & (df_clean["Дата_операции_dt"] <= end_date)
     filtered_df = df_clean.loc[date_mask].copy()
 
     # Явное приведение типа для mypy
@@ -324,23 +309,19 @@ def add_date_columns(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame с дополнительными колонками
     """
-    if df.empty or 'Дата операции' not in df.columns:
+    if df.empty or "Дата операции" not in df.columns:
         return df
 
     df_copy = df.copy()
 
     # Создаем колонку с datetime
-    df_copy['Дата_операции_dt'] = pd.to_datetime(
-        df_copy['Дата операции'],
-        format='%d.%m.%Y',
-        errors='coerce'
-    )
+    df_copy["Дата_операции_dt"] = pd.to_datetime(df_copy["Дата операции"], format="%d.%m.%Y", errors="coerce")
 
     # Добавляем колонки с компонентами даты с явной типизацией
-    df_copy['Год'] = df_copy['Дата_операции_dt'].dt.year.astype('Int64')
-    df_copy['Месяц'] = df_copy['Дата_операции_dt'].dt.month.astype('Int64')
-    df_copy['День'] = df_copy['Дата_операции_dt'].dt.day.astype('Int64')
-    df_copy['День_недели'] = df_copy['Дата_операции_dt'].dt.dayofweek.astype('Int64')
+    df_copy["Год"] = df_copy["Дата_операции_dt"].dt.year.astype("Int64")
+    df_copy["Месяц"] = df_copy["Дата_операции_dt"].dt.month.astype("Int64")
+    df_copy["День"] = df_copy["Дата_операции_dt"].dt.day.astype("Int64")
+    df_copy["День_недели"] = df_copy["Дата_операции_dt"].dt.dayofweek.astype("Int64")
 
     return df_copy
 
@@ -360,14 +341,14 @@ def df_to_json(df: pd.DataFrame) -> str:
     df_copy = df.copy()
 
     # Конвертируем даты в строки - с явной аннотацией типа
-    datetime_columns: pd.Index = df_copy.select_dtypes(include=['datetime64']).columns
+    datetime_columns: pd.Index = df_copy.select_dtypes(include=["datetime64"]).columns
     for col in datetime_columns:
-        df_copy[col] = df_copy[col].dt.strftime('%d.%m.%Y')
+        df_copy[col] = df_copy[col].dt.strftime("%d.%m.%Y")
 
     # Заменяем NaN на None (который станет null в JSON)
     df_copy = df_copy.where(pd.notnull(df_copy), None)
 
-    return json.dumps(df_copy.to_dict('records'), ensure_ascii=False, indent=2)
+    return json.dumps(df_copy.to_dict("records"), ensure_ascii=False, indent=2)
 
 
 # Тестовый запуск
@@ -388,19 +369,19 @@ if __name__ == "__main__":
     if not df.empty:
         print(f"Загружено {len(df)} транзакций")
         print(f"Колонки: {df.columns.tolist()}")
-        if 'Дата операции' in df.columns:
+        if "Дата операции" in df.columns:
             print(f"Первые 3 даты: {df['Дата операции'].head(3).tolist()}")
 
     # Проверка фильтрации
-    filtered_df = filter_transactions_by_date(df, datetime.now(), 'M')
+    filtered_df = filter_transactions_by_date(df, datetime.now(), "M")
     print(f"Транзакций за текущий месяц: {len(filtered_df)}")
 
     # Проверка курсов валют
-    rates = get_currency_rates(['USD', 'EUR'])
+    rates = get_currency_rates(["USD", "EUR"])
     print(f"Курсы валют: {rates}")
 
     # Проверка цен акций
-    prices = get_stock_prices(['AAPL', 'GOOGL'])
+    prices = get_stock_prices(["AAPL", "GOOGL"])
     print(f"Цены акций: {prices}")
 
     print("=" * 50)

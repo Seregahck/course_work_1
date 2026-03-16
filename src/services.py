@@ -1,4 +1,5 @@
 """Модуль для реализации сервисов."""
+
 import json
 import logging
 import math
@@ -9,10 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def investment_bank(
-    period: Union[str, datetime],
-    transactions: List[Dict[str, Any]],
-    limit: int,
-    end_date: Optional[datetime] = None
+    period: Union[str, datetime], transactions: List[Dict[str, Any]], limit: int, end_date: Optional[datetime] = None
 ) -> float:
     """
     Сервис "Инвесткопилка".
@@ -48,17 +46,17 @@ def investment_bank(
 
         for transaction in transactions:
             # Проверяем, есть ли нужные ключи
-            if 'Дата операции' not in transaction or 'Сумма операции' not in transaction:
+            if "Дата операции" not in transaction or "Сумма операции" not in transaction:
                 continue
 
             # Парсим дату операции
-            trans_date = parse_operation_date(transaction['Дата операции'])
+            trans_date = parse_operation_date(transaction["Дата операции"])
             if trans_date is None:
                 continue
 
             # Проверяем, попадает ли транзакция в период
             if start_date <= trans_date <= end_date:
-                amount = transaction['Сумма операции']
+                amount = transaction["Сумма операции"]
 
                 # Берем только расходы (отрицательные суммы)
                 if amount < 0:
@@ -72,7 +70,9 @@ def investment_bank(
         # Формируем понятное описание периода
         period_desc = format_period_description(period, start_date, end_date)
 
-        logger.info(f"Инвесткопилка за {period_desc}: {total_investment} руб. (транзакций: {len(period_transactions)})")
+        logger.info(
+            f"Инвесткопилка за {period_desc}: {total_investment} руб. (транзакций: {len(period_transactions)})"
+        )
 
         return round(total_investment, 2)
 
@@ -137,6 +137,9 @@ def parse_period(period: Union[str, datetime], end_date: datetime) -> tuple:
         if period.upper() == 'ALL':
             start_date = datetime(1900, 1, 1)  # очень старая дата
         else:
+            # Исправлено: проверяем, что delta не None
+            if delta is None:
+                raise ValueError(f"Некорректный период: {period}")
             start_date = end_date - delta
 
         return start_date, end_date
@@ -155,12 +158,12 @@ def parse_month(month_str: str) -> datetime:
         datetime: Объект datetime (первый день месяца)
     """
     formats = [
-        '%m-%Y',  # 03-2026
-        '%Y-%m',  # 2026-03
-        '%m.%Y',  # 03.2026
-        '%Y.%m',  # 2026.03
-        '%m/%Y',  # 03/2026
-        '%Y/%m',  # 2026/03
+        "%m-%Y",  # 03-2026
+        "%Y-%m",  # 2026-03
+        "%m.%Y",  # 03.2026
+        "%Y.%m",  # 2026.03
+        "%m/%Y",  # 03/2026
+        "%Y/%m",  # 2026/03
     ]
 
     for fmt in formats:
@@ -183,11 +186,11 @@ def parse_operation_date(date_str: str) -> Optional[datetime]:
         Optional[datetime]: Объект datetime или None
     """
     formats = [
-        '%d-%m-%Y',  # 15-01-2024
-        '%d.%m.%Y',  # 15.01.2024
-        '%d/%m/%Y',  # 15/01/2024
-        '%Y-%m-%d',  # 2024-01-15
-        '%Y.%m.%d',  # 2024.01.15
+        "%d-%m-%Y",  # 15-01-2024
+        "%d.%m.%Y",  # 15.01.2024
+        "%d/%m/%Y",  # 15/01/2024
+        "%Y-%m-%d",  # 2024-01-15
+        "%Y.%m.%d",  # 2024.01.15
     ]
 
     for fmt in formats:
@@ -213,24 +216,24 @@ def format_period_description(period: Union[str, datetime], start_date: datetime
         str: Описание периода
     """
     if isinstance(period, datetime):
-        return period.strftime('%B %Y')
+        return period.strftime("%B %Y")
 
     period_names = {
-        'D': 'день',
-        'W': 'неделю',
-        'M': 'месяц',
-        '2M': '2 месяца',
-        '3M': '3 месяца',
-        '6M': '6 месяцев',
-        'Y': 'год',
-        'ALL': 'все время'
+        "D": "день",
+        "W": "неделю",
+        "M": "месяц",
+        "2M": "2 месяца",
+        "3M": "3 месяца",
+        "6M": "6 месяцев",
+        "Y": "год",
+        "ALL": "все время",
     }
 
     if period.upper() in period_names:
         return f"последн{'' if period.upper() == 'D' else 'ю' if period.upper() in ['W', 'M'] else 'ие'} {period_names[period.upper()]}"
     else:
         # Для конкретного месяца
-        return start_date.strftime('%B %Y')
+        return start_date.strftime("%B %Y")
 
 
 def simple_search(search_string: str, transactions: List[Dict[str, Any]]) -> str:
@@ -249,8 +252,8 @@ def simple_search(search_string: str, transactions: List[Dict[str, Any]]) -> str
     search_lower = search_string.lower()
 
     for transaction in transactions:
-        description = str(transaction.get('Описание', '')).lower()
-        category = str(transaction.get('Категория', '')).lower()
+        description = str(transaction.get("Описание", "")).lower()
+        category = str(transaction.get("Категория", "")).lower()
 
         if search_lower in description or search_lower in category:
             results.append(transaction)
